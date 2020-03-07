@@ -27,7 +27,7 @@ glm::vec3 Framebuffer[SCREEN_WIDTH * SCREEN_HEIGHT];
 
 GLuint VBO;
 
-rt::Camera Camera;
+rt::Camera Camera(glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 15.0f, 30.0f, glm::vec2(SCREEN_WIDTH, SCREEN_HEIGHT));
 
 rt::Sphere Sphere(glm::vec3(0.0f, 0.0f, -10.0f), 2.5f);
 
@@ -106,23 +106,13 @@ void Render()
 {
   InputHandle();
 
-  glm::vec3 position = Camera.GetViewMatrix() * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-
   for(int j = 0; j < SCREEN_HEIGHT; ++j)
   {
     for(int i = 0; i < SCREEN_WIDTH; ++i)
     {
-      glm::vec2 ndc;
-      ndc.x = (i + 0.5f) / static_cast<float>(SCREEN_WIDTH);
-      ndc.y = (j + 0.5f) / static_cast<float>(SCREEN_HEIGHT);
-
-      glm::vec2 sp;
-      sp.x = (2.0f * ndc.x - 1.0f) * AspectRatio * glm::tan(FOV / 2.0f);
-      sp.y = (1.0f - 2.0f * ndc.y) * glm::tan(glm::radians(FOV) / 2.0f);
-
       rt::Ray mainRay;
-      mainRay.Origin =  position;
-      mainRay.Direction = glm::normalize(glm::vec3(sp.x, sp.y, -1.0f));
+      mainRay.Origin      = Camera.GetPosition();
+      mainRay.Direction   = Camera.GetDirection(i, j);
 
       Framebuffer[i + j * SCREEN_WIDTH] = CastRay(mainRay);
     }
