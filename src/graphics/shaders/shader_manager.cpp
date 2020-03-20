@@ -39,7 +39,10 @@ namespace graphics
 
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &status);
     if(!status)
+    {
+      glDeleteShader(vertexShader);
       return false;
+    }
 
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &sources[1], nullptr);
@@ -47,12 +50,19 @@ namespace graphics
 
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &status);
     if(!status)
+    {
+      glDeleteShader(vertexShader);
+      glDeleteShader(fragmentShader);
       return false;
+    }
 
     GLuint resID = glCreateProgram();
     glAttachShader(resID, vertexShader);
     glAttachShader(resID, fragmentShader);
     glLinkProgram(resID);
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
 
     glGetProgramiv(resID, GL_LINK_STATUS, &status);
     if(!status)

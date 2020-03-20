@@ -19,7 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="src\main.cu" />
+    <CudaCompile Include="src\intersections.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\includes\intersections.h" />
+    <ClInclude Include="src\include\intersections.h" />
+    <ClInclude Include="src\include\rt_math.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{7F1AB99A-4136-4440-A4ED-016EE9182365}</ProjectGuid>

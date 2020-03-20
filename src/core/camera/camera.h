@@ -4,8 +4,11 @@
 
 namespace rt
 {
-  #define CAMERA_SPEED 15.0f
-  #define CAMERA_FOV   45.0f
+  #define CAMERA_SPEED        15.0f
+  #define CAMERA_FOV          45.0f
+  #define CAMERA_YAW          -90.0f
+  #define CAMERA_PITCH        0.0f
+  #define CAMERA_SENSETIVITY  0.05f
 
   enum class CameraMove
   {
@@ -29,6 +32,8 @@ namespace rt
 
     float Speed;
     float FOV;
+    float Yaw;
+    float Pitch;
 
     glm::vec2 ScreenSize;
     float     AspectRatio;
@@ -38,7 +43,11 @@ namespace rt
     //Move camera in that direction which is pass in function
     void Move(const CameraMove move, const float deltaTime);
 
+    //Handle mouse to rotate camera
+    void ProcessMouse(const float mouseX, const float mouseY);
+
     glm::vec3 GetPosition() const;
+    glm::vec3 GetPosition(glm::vec3 position) const;
     glm::vec3 GetDirection(const int x, const int y) const;
 
   private:

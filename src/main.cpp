@@ -1,5 +1,10 @@
-#define GLEW_STATIC
+#include <cassert>
+#include <cstring>
+#include <cmath>
+#include <cstdint>
+#include <chrono>
 
+#define GLEW_STATIC
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
 
@@ -11,33 +16,27 @@
 
 #include "core/ray_tracer.h"
 
-#include <cassert>
-#include <cstring>
-#include <cmath>
+#include "intersections.h"
 
 #define ASSERT(x, y) assert(x && y);
 
-#define SCREEN_WIDTH    300
-#define SCREEN_HEIGHT   150
+#define SCREEN_WIDTH    1280
+#define SCREEN_HEIGHT   640
 
-float AspectRatio = static_cast<float>(SCREEN_WIDTH) / SCREEN_HEIGHT;
-float FOV         = 45.0f;
+cuda::Vector3 Framebuffer[SCREEN_WIDTH * SCREEN_HEIGHT];
 
-glm::vec3 Framebuffer[SCREEN_WIDTH * SCREEN_HEIGHT];
+rt::Camera Camera(glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 15.0f, 30.0f, glm::vec2(SCREEN_WIDTH, SCREEN_HEIGHT));
+cuda::Sphere CudaSphere{cuda::Vector3(0.0f, 0.0f, -10.0f), 2.5f};
 
 GLuint VBO;
 
-rt::Camera Camera(glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 15.0f, 30.0f, glm::vec2(SCREEN_WIDTH, SCREEN_HEIGHT));
-
-rt::Sphere Sphere(glm::vec3(0.0f, 0.0f, -10.0f), 2.5f);
-
 void Render();
-glm::vec3 CastRay(rt::Ray ray);
 
 void MainLoop();
 void UpdateTexture();
 
 void InputHandle();
+void MouseCallback(GLFWwindow* window, double mouseX, double mouseY);
 
 int main()
 {
@@ -50,6 +49,9 @@ int main()
 
   if(!input::SetupInput(window))
     return -1;
+
+  glfwSetCursorPosCallback(window, MouseCallback);
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
   float vertices[] =
   {
@@ -106,17 +108,11 @@ void Render()
 {
   InputHandle();
 
-  for(int j = 0; j < SCREEN_HEIGHT; ++j)
-  {
-    for(int i = 0; i < SCREEN_WIDTH; ++i)
-    {
-      rt::Ray mainRay;
-      mainRay.Origin      = Camera.GetPosition();
-      mainRay.Direction   = Camera.GetDirection(i, j);
+  glm::vec3 vecGLM = Camera.GetPosition(glm::vec3(0.0f, 0.0f, -10.0f));
+  cuda::Vector3 vecCuda(vecGLM.x, vecGLM.y, vecGLM.z);
+  CudaSphere.Center = vecCuda;
 
-      Framebuffer[i + j * SCREEN_WIDTH] = CastRay(mainRay);
-    }
-  }
+  cuda::Render(&CudaSphere, cuda::Vector3(), SCREEN_WIDTH, SCREEN_HEIGHT, Framebuffer);
 }
 
 void InputHandle()
@@ -131,13 +127,24 @@ void InputHandle()
     Camera.Move(rt::CameraMove::LEFT, 0.01f);
 }
 
-glm::vec3 CastRay(rt::Ray ray)
+void MouseCallback(GLFWwindow* window, double mouseX, double mouseY)
 {
-  float distance = INFINITY;
-  if(Sphere.Intersection(ray, distance))
-    return glm::vec3(1.0f, 0.2f, 0.2f);
+  static float lastX, lastY;
+  static bool firstMouse = true;
 
-  return glm::vec3(0.5f, 0.5f, 0.5f);
+  if(firstMouse)
+  {
+    lastX = mouseX;
+    lastY = mouseY;
+    firstMouse = false;
+  }
+
+  float xOffset = mouseX - lastX;
+  float yOffset = mouseY - lastY;
+  lastX = mouseX;
+  lastY = mouseY;
+
+  Camera.ProcessMouse(xOffset, yOffset);
 }
 
 void UpdateTexture()
@@ -147,10 +154,16 @@ void UpdateTexture()
 
 void MainLoop()
 {
+  auto timerStart = std::chrono::system_clock::now();
+
   Render();
   UpdateTexture();
 
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
   glDrawArrays(GL_QUADS, 0, 8);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  auto timerEnd = std::chrono::system_clock::now();
+  double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(timerEnd - timerStart).count();
+  //printf("%f m/s\t%f fps\n", elapsed, 1000.0f / elapsed);
 }
